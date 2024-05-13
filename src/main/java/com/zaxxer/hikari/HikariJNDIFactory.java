@@ -23,34 +23,42 @@ import javax.naming.spi.ObjectFactory;
 import javax.sql.DataSource;
 import java.util.Hashtable;
 import java.util.Properties;
+import java.util.concurrent.locks.ReentrantLock;
 
 /**
  * A JNDI factory that produces HikariDataSource instances.
  *
  * @author Brett Wooldridge
  */
-public class HikariJNDIFactory implements ObjectFactory
-{
-   @Override
-   synchronized public Object getObjectInstance(Object obj, Name name, Context nameCtx, Hashtable<?, ?> environment) throws Exception
-   {
-      // We only know how to deal with <code>javax.naming.Reference</code> that specify a class name of "javax.sql.DataSource"
-      if (obj instanceof Reference && "javax.sql.DataSource".equals(((Reference) obj).getClassName())) {
-         var ref = (Reference) obj;
-         var hikariPropSet = PropertyElf.getPropertyNames(HikariConfig.class);
+public class HikariJNDIFactory implements ObjectFactory {
 
-         var properties = new Properties();
-         var enumeration = ref.getAll();
-         while (enumeration.hasMoreElements()) {
-            var element = enumeration.nextElement();
-            var type = element.getType();
-            if (type.startsWith("dataSource.") || hikariPropSet.contains(type)) {
-               properties.setProperty(type, element.getContent().toString());
+   private final ReentrantLock hikariJNDIFactoryLock = new ReentrantLock();
+
+   @Override
+   public Object getObjectInstance(Object obj, Name name, Context nameCtx, Hashtable<?, ?> environment) throws Exception
+   {
+      hikariJNDIFactoryLock.lock();
+      try {
+         // We only know how to deal with <code>javax.naming.Reference</code> that specify a class name of "javax.sql.DataSource"
+         if (obj instanceof Reference && "javax.sql.DataSource".equals(((Reference) obj).getClassName())) {
+            var ref = (Reference) obj;
+            var hikariPropSet = PropertyElf.getPropertyNames(HikariConfig.class);
+
+            var properties = new Properties();
+            var enumeration = ref.getAll();
+            while (enumeration.hasMoreElements()) {
+               var element = enumeration.nextElement();
+               var type = element.getType();
+               if (type.startsWith("dataSource.") || hikariPropSet.contains(type)) {
+                  properties.setProperty(type, element.getContent().toString());
+               }
             }
+            return createDataSource(properties, nameCtx);
          }
-         return createDataSource(properties, nameCtx);
+         return null;
+      } finally {
+         hikariJNDIFactoryLock.unlock();
       }
-      return null;
    }
 
    private DataSource createDataSource(final Properties properties, final Context context) throws NamingException
