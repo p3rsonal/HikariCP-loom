@@ -15,19 +15,19 @@
  */
 package com.zaxxer.hikari.pool;
 
-import javax.naming.Context;
-import javax.naming.Name;
-import javax.naming.NamingException;
-import javax.naming.RefAddr;
-import javax.naming.Reference;
-
-import org.junit.Assert;
-import org.junit.Test;
-import org.osjava.sj.jndi.AbstractContext;
-
+import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
 import com.zaxxer.hikari.HikariJNDIFactory;
 import com.zaxxer.hikari.mocks.StubDataSource;
+import org.junit.Test;
+import org.osjava.sj.jndi.AbstractContext;
+
+import javax.naming.*;
+import java.sql.Connection;
+
+import static com.zaxxer.hikari.pool.TestElf.getUnsealedConfig;
+import static com.zaxxer.hikari.pool.TestElf.newHikariConfig;
+import static org.junit.Assert.*;
 
 public class TestJNDI
 {
@@ -47,8 +47,8 @@ public class TestJNDI
       Context nameCtx = new BogusContext();
 
       try (HikariDataSource ds = (HikariDataSource) jndi.getObjectInstance(ref, null, nameCtx, null)) {
-         Assert.assertNotNull(ds);
-         Assert.assertEquals("foo", ds.getUsername());
+         assertNotNull(ds);
+         assertEquals("foo", getUnsealedConfig(ds).getUsername());
       }
    }
 
@@ -69,8 +69,8 @@ public class TestJNDI
       Context nameCtx = new BogusContext2();
 
       try (HikariDataSource ds = (HikariDataSource) jndi.getObjectInstance(ref, null, nameCtx, null)) {
-         Assert.assertNotNull(ds);
-         Assert.assertEquals("foo", ds.getUsername());
+         assertNotNull(ds);
+         assertEquals("foo", getUnsealedConfig(ds).getUsername());
       }
    }
 
@@ -83,10 +83,31 @@ public class TestJNDI
       ref.add(new BogusRef("dataSourceJNDI", "java:comp/env/HikariDS"));
       try {
          jndi.getObjectInstance(ref, null, null, null);
-         Assert.fail();
+         fail();
       }
       catch (RuntimeException e) {
-         Assert.assertTrue(e.getMessage().contains("JNDI context does not found"));
+         assertTrue(e.getMessage().contains("JNDI context does not found"));
+      }
+   }
+
+   @Test
+   public void testJndiLookup4() throws Exception
+   {
+      System.setProperty(Context.INITIAL_CONTEXT_FACTORY, "org.osjava.sj.memory.MemoryContextFactory");
+      System.setProperty("org.osjava.sj.jndi.shared", "true");
+      InitialContext ic = new InitialContext();
+
+      StubDataSource ds = new StubDataSource();
+
+      Context subcontext = ic.createSubcontext("java:/comp/env/jdbc");
+      subcontext.bind("java:/comp/env/jdbc/myDS", ds);
+
+      HikariConfig config = newHikariConfig();
+      config.setDataSourceJNDI("java:/comp/env/jdbc/myDS");
+
+      try (HikariDataSource hds = new HikariDataSource(config);
+           Connection conn = hds.getConnection()) {
+         assertNotNull(conn);
       }
    }
 
@@ -94,15 +115,17 @@ public class TestJNDI
    private class BogusContext extends AbstractContext
    {
       @Override
-      public Context createSubcontext(Name name) throws NamingException
+      public Context createSubcontext(Name name)
       {
          return null;
       }
 
       @Override
-      public Object lookup(String name) throws NamingException
+      public Object lookup(String name)
       {
-         return new HikariDataSource();
+         final HikariDataSource ds = new HikariDataSource();
+         ds.setPoolName("TestJNDI");
+         return ds;
       }
    }
 
@@ -110,13 +133,13 @@ public class TestJNDI
    private class BogusContext2 extends AbstractContext
    {
       @Override
-      public Context createSubcontext(Name name) throws NamingException
+      public Context createSubcontext(Name name)
       {
          return null;
       }
 
       @Override
-      public Object lookup(String name) throws NamingException
+      public Object lookup(String name)
       {
          return new StubDataSource();
       }

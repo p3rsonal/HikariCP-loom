@@ -1,9 +1,41 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
    <modelVersion>4.0.0</modelVersion>
 
+   <properties>
+      <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+      <sureFireOptions11>--add-modules=ALL-MODULE-PATH</sureFireOptions11>
+      <sureFireForks11>false</sureFireForks11>
+      <!--java11.sourceDirectory>${project.basedir}/src/main/java11</java11.sourceDirectory -->
+      <!--java11.build.outputDirectory>${project.build.directory}/classes-java11</java11.build.outputDirectory -->
+      <artifact.classifier />
+
+      <sonatypeOssDistMgmtSnapshotsUrl>https://oss.sonatype.org/content/repositories/snapshots/</sonatypeOssDistMgmtSnapshotsUrl>
+
+      <docker.maven.plugin.fabric8.version>0.40.3</docker.maven.plugin.fabric8.version>
+      <felix.bundle.plugin.version>5.1.1</felix.bundle.plugin.version>
+      <felix.version>6.0.1</felix.version>
+      <hibernate.version>5.4.24.Final</hibernate.version>
+      <javassist.version>3.29.2-GA</javassist.version>
+      <jndi.version>0.11.4.1</jndi.version>
+      <maven.release.version>3.0.1</maven.release.version>
+      <metrics.version>3.2.5</metrics.version>
+      <micrometer.version>1.5.10</micrometer.version>
+      <simpleclient.version>0.9.0</simpleclient.version>
+      <mockito.version>3.7.7</mockito.version>
+      <pax.exam.version>4.13.5</pax.exam.version>
+      <pax.url.version>2.5.4</pax.url.version>
+      <postgresql.version>42.5.1</postgresql.version>
+      <log4j.version>2.18.0</log4j.version>
+      <slf4j.version>1.7.36</slf4j.version>
+      <commons.csv.version>1.5</commons.csv.version>
+      <h2.version>2.1.212</h2.version>
+      <junit.version>4.13.2</junit.version>
+      <testcontainers.version>1.17.6</testcontainers.version>
+   </properties>
+
    <groupId>com.zaxxer</groupId>
    <artifactId>HikariCP</artifactId>
-   <version>2.4.5-SNAPSHOT</version>
+   <version>5.1.1-SNAPSHOT</version>
    <packaging>bundle</packaging>
 
    <name>HikariCP</name>
@@ -18,14 +50,45 @@
    <scm>
       <connection>scm:git:git@github.com:brettwooldridge/HikariCP.git</connection>
       <developerConnection>scm:git:git@github.com:brettwooldridge/HikariCP.git</developerConnection>
-      <url>git@github.com:brettwooldridge/HikariCP.git</url>
+      <url>https://github.com/brettwooldridge/HikariCP</url>
       <tag>HEAD</tag>
    </scm>
+
+   <repositories>
+      <repository>
+         <id>sonatype-nexus-snapshots</id>
+         <name>Sonatype Nexus Snapshots</name>
+         <url>https://oss.sonatype.org/content/repositories/snapshots</url>
+         <releases>
+            <enabled>false</enabled>
+         </releases>
+         <snapshots>
+            <enabled>true</enabled>
+         </snapshots>
+      </repository>
+   </repositories>
+
+   <distributionManagement>
+      <snapshotRepository>
+         <id>sonatype-nexus-snapshots</id>
+         <name>Sonatype Nexus Snapshots</name>
+         <url>${sonatypeOssDistMgmtSnapshotsUrl}</url>
+      </snapshotRepository>
+      <repository>
+         <id>sonatype-nexus-staging</id>
+         <name>Nexus Release Repository</name>
+         <url>https://oss.sonatype.org/service/local/staging/deploy/maven2/</url>
+      </repository>
+   </distributionManagement>
+
+   <issueManagement>
+      <url>https://github.com/brettwooldridge/HikariCP/issues</url>
+   </issueManagement>
 
    <licenses>
       <license>
          <name>The Apache Software License, Version 2.0</name>
-         <url>http://www.apache.org/licenses/LICENSE-2.0.txt</url>
+         <url>https://www.apache.org/licenses/LICENSE-2.0.txt</url>
          <distribution>repo</distribution>
       </license>
    </licenses>
@@ -37,44 +100,11 @@
       </developer>
    </developers>
 
-   <properties>
-      <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-
-      <felix.bundle.plugin.version>3.0.1</felix.bundle.plugin.version>
-      <felix.version>5.4.0</felix.version>
-      <hibernate.version>5.0.7.Final</hibernate.version>
-      <javassist.version>3.20.0-GA</javassist.version>
-      <jndi.version>0.11.4.1</jndi.version>
-      <maven.release.version>2.5.3</maven.release.version>
-      <metrics.version>3.1.2</metrics.version>
-      <mockito.version>1.10.19</mockito.version>
-      <pax.exam.version>4.8.0</pax.exam.version>
-      <pax.url.version>2.4.5</pax.url.version>
-      <slf4j.version>1.7.16</slf4j.version>
-      <log4j.version>2.5</log4j.version>
-   </properties>
-
-   <parent>
-      <groupId>org.sonatype.oss</groupId>
-      <artifactId>oss-parent</artifactId>
-      <version>9</version>
-   </parent>
-
-   <prerequisites>
-      <maven>3.3.9</maven>
-   </prerequisites>
-
    <dependencies>
       <dependency>
          <groupId>org.slf4j</groupId>
          <artifactId>slf4j-api</artifactId>
          <version>${slf4j.version}</version>
-      </dependency>
-      <dependency>
-         <groupId>org.apache.logging.log4j</groupId>
-         <artifactId>log4j-slf4j-impl</artifactId>
-         <version>${log4j.version}</version>
-         <scope>test</scope>
       </dependency>
       <dependency>
          <groupId>org.apache.logging.log4j</groupId>
@@ -89,15 +119,33 @@
          <scope>test</scope>
       </dependency>
       <dependency>
+         <groupId>org.testcontainers</groupId>
+         <artifactId>postgresql</artifactId>
+         <version>${testcontainers.version}</version>
+         <scope>test</scope>
+      </dependency>
+      <dependency>
          <groupId>org.apache.commons</groupId>
          <artifactId>commons-csv</artifactId>
-         <version>1.2</version>
+         <version>${commons.csv.version}</version>
          <scope>test</scope>
       </dependency>
       <dependency>
          <groupId>org.mockito</groupId>
-         <artifactId>mockito-all</artifactId>
+         <artifactId>mockito-core</artifactId>
          <version>${mockito.version}</version>
+         <scope>test</scope>
+         <exclusions>
+            <exclusion>
+               <groupId>org.hamcrest</groupId>
+               <artifactId>hamcrest-core</artifactId>
+            </exclusion>
+         </exclusions>
+      </dependency>
+      <dependency>
+         <groupId>junit</groupId>
+         <artifactId>junit</artifactId>
+         <version>${junit.version}</version>
          <scope>test</scope>
       </dependency>
       <dependency>
@@ -105,6 +153,18 @@
          <artifactId>javassist</artifactId>
          <version>${javassist.version}</version>
          <optional>true</optional>
+      </dependency>
+      <dependency>
+         <groupId>io.micrometer</groupId>
+         <artifactId>micrometer-core</artifactId>
+         <version>${micrometer.version}</version>
+         <optional>true</optional>
+      </dependency>
+      <dependency>
+         <groupId>org.postgresql</groupId>
+         <artifactId>postgresql</artifactId>
+         <version>${postgresql.version}</version>
+         <scope>test</scope>
       </dependency>
       <dependency>
          <groupId>org.hibernate</groupId>
@@ -138,9 +198,22 @@
          <optional>true</optional>
       </dependency>
       <dependency>
+         <groupId>io.prometheus</groupId>
+         <artifactId>simpleclient</artifactId>
+         <version>${simpleclient.version}</version>
+         <scope>provided</scope>
+         <optional>true</optional>
+      </dependency>
+      <dependency>
          <groupId>simple-jndi</groupId>
          <artifactId>simple-jndi</artifactId>
          <version>${jndi.version}</version>
+         <scope>test</scope>
+      </dependency>
+      <dependency>
+         <groupId>org.apache.logging.log4j</groupId>
+         <artifactId>log4j-slf4j-impl</artifactId>
+         <version>${log4j.version}</version>
          <scope>test</scope>
       </dependency>
 
@@ -171,6 +244,12 @@
       </dependency>
       <dependency>
          <groupId>org.ops4j.pax.exam</groupId>
+         <artifactId>pax-exam-link-assembly</artifactId>
+         <version>${pax.exam.version}</version>
+         <scope>test</scope>
+      </dependency>
+      <dependency>
+         <groupId>org.ops4j.pax.exam</groupId>
          <artifactId>pax-exam-link-mvn</artifactId>
          <version>${pax.exam.version}</version>
          <scope>test</scope>
@@ -187,37 +266,142 @@
          <version>${pax.url.version}</version>
          <scope>test</scope>
       </dependency>
+      <dependency>
+         <groupId>com.h2database</groupId>
+         <artifactId>h2</artifactId>
+         <version>${h2.version}</version>
+         <scope>test</scope>
+      </dependency>
    </dependencies>
 
    <build>
+      <resources>
+         <resource>
+            <directory>target/classes</directory>
+         </resource>
+      </resources>
+
       <plugins>
+         <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-enforcer-plugin</artifactId>
+            <version>3.4.1</version>
+            <executions>
+               <execution>
+                  <id>enforce-maven</id>
+                  <goals>
+                     <goal>enforce</goal>
+                  </goals>
+                  <configuration>
+                     <rules>
+                        <requireMavenVersion>
+                           <version>(3.0.0,)</version>
+                        </requireMavenVersion>
+                     </rules>
+                  </configuration>
+               </execution>
+            </executions>
+         </plugin>
+
+         <plugin>
+            <artifactId>maven-dependency-plugin</artifactId>
+            <version>2.8</version>
+            <executions>
+               <execution>
+                  <phase>generate-sources</phase>
+                  <goals>
+                     <goal>build-classpath</goal>
+                  </goals>
+                  <configuration>
+                     <outputProperty>maven.compile.classpath</outputProperty>
+                  </configuration>
+               </execution>
+            </executions>
+         </plugin>
+
          <plugin>
             <!-- Generate proxies -->
             <groupId>org.codehaus.mojo</groupId>
             <artifactId>exec-maven-plugin</artifactId>
-            <version>1.4.0</version>
+            <version>1.6.0</version>
+            <extensions>true</extensions>
             <executions>
                <execution>
                   <phase>compile</phase>
                   <!-- phase>generate-test-sources</phase -->
                   <goals>
-                     <goal>java</goal>
+                     <goal>exec</goal>
                   </goals>
                </execution>
             </executions>
             <configuration>
-               <mainClass>com.zaxxer.hikari.util.JavassistProxyFactory</mainClass>
+               <executable>java</executable>
+               <arguments>
+                  <argument>-cp</argument>
+                  <argument>${project.build.outputDirectory}${path.separator}${maven.compile.classpath}</argument>
+                  <argument>com.zaxxer.hikari.util.JavassistProxyFactory</argument>
+                  <argument>${project.basedir}${file.separator}</argument>
+               </arguments>
             </configuration>
+         </plugin>
+
+         <plugin>
+            <!-- The Docker Maven plugin is used to create docker image with the fat jar -->
+            <groupId>io.fabric8</groupId>
+            <artifactId>docker-maven-plugin</artifactId>
+            <version>${docker.maven.plugin.fabric8.version}</version>
+            <configuration>
+               <logDate>default</logDate>
+               <autoPull>true</autoPull>
+               <images>
+                  <!-- Postgres Image is used 'as-is' and iked into the service s linimage -->
+                  <image>
+                     <alias>db</alias>
+                     <name>postgres:11</name>
+                     <run>
+                        <env>
+                           <POSTGRES_PASSWORD>password</POSTGRES_PASSWORD>
+                        </env>
+                        <wait>
+                           <log>database system is ready to accept connections</log>
+                           <time>20000</time>
+                        </wait>
+                        <log>
+                           <prefix>DB</prefix>
+                           <color>yellow</color>
+                        </log>
+                     </run>
+                  </image>
+               </images>
+            </configuration>
+
+            <!-- Hooking into the lifecycle -->
+            <executions>
+               <execution>
+                  <id>start</id>
+                  <phase>pre-integration-test</phase>
+                  <goals>
+                     <goal>build</goal>
+                     <goal>start</goal>
+                  </goals>
+               </execution>
+               <execution>
+                  <id>stop</id>
+                  <phase>post-integration-test</phase>
+                  <goals>
+                     <goal>stop</goal>
+                  </goals>
+               </execution>
+            </executions>
          </plugin>
 
          <plugin>
             <groupId>org.jacoco</groupId>
             <artifactId>jacoco-maven-plugin</artifactId>
-            <version>0.7.5.201505241946</version>
+            <version>0.8.8</version>
             <executions>
                <!-- Prepares the property pointing to the JaCoCo runtime agent which is passed as VM argument when Maven the Surefire plugin is executed. -->
                <execution>
-                  <id>pre-unit-test</id>
                   <goals>
                      <goal>prepare-agent</goal>
                   </goals>
@@ -227,6 +411,7 @@
                      <!-- Sets the name of the property containing the settings for JaCoCo runtime agent. -->
                      <propertyName>surefireArgLine</propertyName>
                      <excludes>
+                        <exclude>**/com/zaxxer/hikari/util/JavassistProxyFactory*</exclude>
                         <exclude>**/com/zaxxer/hikari/pool/HikariProxy*</exclude>
                         <exclude>**/com/zaxxer/hikari/metrics/**</exclude>
                      </excludes>
@@ -234,7 +419,7 @@
                </execution>
                <!-- Ensures that the code coverage report for unit tests is created after unit tests have been run. -->
                <execution>
-                  <id>post-unit-test</id>
+                  <id>report</id>
                   <phase>test</phase>
                   <goals>
                      <goal>report</goal>
@@ -242,13 +427,25 @@
                   <configuration>
                      <!-- Sets the path to the file which contains the execution data. -->
                      <dataFile>${project.build.directory}/coverage-reports/jacoco.exec</dataFile>
-                     <!-- Sets the output directory for the code coverage report. -->
-                     <outputDirectory>${project.reporting.outputDirectory}/jacoco</outputDirectory>
                      <excludes>
                         <exclude>**/com/zaxxer/hikari/pool/HikariProxy*</exclude>
                         <exclude>**/com/zaxxer/hikari/metrics/**</exclude>
                      </excludes>
                   </configuration>
+               </execution>
+            </executions>
+         </plugin>
+
+         <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-failsafe-plugin</artifactId>
+            <version>3.0.0-M3</version>
+            <executions>
+               <execution>
+                  <goals>
+                     <goal>integration-test</goal>
+                     <goal>verify</goal>
+                  </goals>
                </execution>
             </executions>
          </plugin>
@@ -259,14 +456,21 @@
             <version>${felix.bundle.plugin.version}</version>
             <extensions>true</extensions>
             <configuration>
+               <classifier>${artifact.classifier}</classifier>
                <instructions>
+                  <Automatic-Module-Name>${automatic.module.name}</Automatic-Module-Name>
+                  <!-- Multi-Release>true</Multi-Release-->
                   <Bundle-Name>HikariCP</Bundle-Name>
                   <Export-Package>
                      com.zaxxer.hikari,
                      com.zaxxer.hikari.hibernate,
-                     com.zaxxer.hikari.metrics
+                     com.zaxxer.hikari.metrics,
+                     com.zaxxer.hikari.metrics.dropwizard,
+                     com.zaxxer.hikari.metrics.micrometer,
+                     com.zaxxer.hikari.metrics.prometheus
                   </Export-Package>
                   <Private-Package>com.zaxxer.hikari.*</Private-Package>
+                  <Include-Resource>{maven-resources}</Include-Resource>
                   <_exportcontents>
                      com.zaxxer.hikari.pool,
                      com.zaxxer.hikari.util
@@ -281,6 +485,7 @@
                      javax.sql.rowset.spi,
                      com.codahale.metrics;resolution:=optional,
                      com.codahale.metrics.health;resolution:=optional,
+                     io.micrometer.core.instrument;resolution:=optional,
                      org.slf4j;version="[1.6,2)",
                      org.hibernate;resolution:=optional,
                      org.hibernate.cfg;resolution:=optional,
@@ -308,11 +513,11 @@
             <plugin>
                <groupId>org.apache.maven.plugins</groupId>
                <artifactId>maven-compiler-plugin</artifactId>
-               <version>3.5.1</version>
-               <extensions>true</extensions>
+               <version>3.8.1</version>
                <configuration>
-                  <source>1.7</source>
-                  <target>1.7</target>
+                  <source>11</source>
+                  <target>11</target>
+                  <compilerArgs>-Xlint</compilerArgs>
                </configuration>
             </plugin>
 
@@ -323,26 +528,25 @@
                <configuration>
                   <autoVersionSubmodules>true</autoVersionSubmodules>
                   <tagNameFormat>HikariCP-@{project.version}</tagNameFormat>
+                  <arguments>-Psonatype-oss-release</arguments>
                </configuration>
             </plugin>
 
             <plugin>
                <groupId>org.apache.maven.plugins</groupId>
                <artifactId>maven-surefire-plugin</artifactId>
-               <version>2.19.1</version>
+               <version>3.0.0-M8</version>
                <configuration>
                   <!-- Sets the VM argument line used when unit tests are run. -->
-                  <argLine>${surefireArgLine}</argLine>
-                  <!-- Skips unit tests if the value of skip.unit.tests property is true -->
-                  <skipTests>${skip.unit.tests}</skipTests>
-                  <reuseForks>false</reuseForks>
+                  <argLine>${surefireArgLine} ${sureFireOptions11}</argLine>
+                  <reuseForks>${sureFireForks11}</reuseForks>
                </configuration>
             </plugin>
 
             <plugin>
                <groupId>org.apache.maven.plugins</groupId>
                <artifactId>maven-source-plugin</artifactId>
-               <version>2.4</version>
+               <version>3.0.1</version>
                <configuration>
                   <!-- outputDirectory>/absolute/path/to/the/output/directory</outputDirectory>
                      <finalName>filename-of-generated-jar-file</finalName -->
@@ -352,7 +556,7 @@
                   <execution>
                      <id>attach-sources</id>
                      <goals>
-                        <goal>jar</goal>
+                        <goal>jar-no-fork</goal>
                      </goals>
                   </execution>
                </executions>
@@ -361,10 +565,12 @@
             <plugin>
                <groupId>org.apache.maven.plugins</groupId>
                <artifactId>maven-javadoc-plugin</artifactId>
-               <version>2.10.3</version>
+               <version>3.0.1</version>
                <configuration>
                   <show>public</show>
-                  <!-- excludePackageNames>com.zaxxer.hikari.*</excludePackageNames -->
+                  <excludePackageNames>
+                     com.zaxxer.hikari.hibernate:com.zaxxer.hikari.metrics.*:com.zaxxer.hikari.pool:com.zaxxer.hikari.util
+                  </excludePackageNames>
                   <attach>true</attach>
                   <maxmemory>1024m</maxmemory>
                </configuration>
@@ -383,29 +589,6 @@
    </build>
 
    <profiles>
-      <profile>
-         <id>coverage</id>
-         <build>
-            <plugins>
-               <plugin>
-                  <groupId>org.eluder.coveralls</groupId>
-                  <artifactId>coveralls-maven-plugin</artifactId>
-                  <version>4.1.0</version>
-                  <executions>
-                     <execution>
-                        <id>coveralls</id>
-                        <phase>verify</phase>
-                        <goals>
-                           <goal>jacoco</goal>
-                        </goals>
-                        <inherited>false</inherited>
-                     </execution>
-                  </executions>
-               </plugin>
-            </plugins>
-         </build>
-      </profile>
-
       <profile>
          <id>release-sign-artifacts</id>
          <activation>
@@ -455,6 +638,53 @@
                <scope>test</scope>
             </dependency>
          </dependencies>
+      </profile>
+      <profile>
+         <id>sonatype-oss-release</id>
+         <build>
+            <plugins>
+               <plugin>
+                  <groupId>org.apache.maven.plugins</groupId>
+                  <artifactId>maven-source-plugin</artifactId>
+                  <version>3.3.0</version>
+                  <executions>
+                     <execution>
+                        <id>attach-sources</id>
+                        <goals>
+                           <goal>jar-no-fork</goal>
+                        </goals>
+                     </execution>
+                  </executions>
+               </plugin>
+               <plugin>
+                  <groupId>org.apache.maven.plugins</groupId>
+                  <artifactId>maven-javadoc-plugin</artifactId>
+                  <version>3.6.0</version>
+                  <executions>
+                     <execution>
+                        <id>attach-javadocs</id>
+                        <goals>
+                           <goal>jar</goal>
+                        </goals>
+                     </execution>
+                  </executions>
+               </plugin>
+               <plugin>
+                  <groupId>org.apache.maven.plugins</groupId>
+                  <artifactId>maven-gpg-plugin</artifactId>
+                  <version>3.1.0</version>
+                  <executions>
+                     <execution>
+                        <id>sign-artifacts</id>
+                        <phase>verify</phase>
+                        <goals>
+                           <goal>sign</goal>
+                        </goals>
+                     </execution>
+                  </executions>
+               </plugin>
+            </plugins>
+         </build>
       </profile>
    </profiles>
 </project>

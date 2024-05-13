@@ -21,26 +21,7 @@ package com.zaxxer.hikari.metrics;
  *
  * @author Brett Wooldridge
  */
-public class MetricsTracker implements AutoCloseable
+@Deprecated
+public class MetricsTracker implements IMetricsTracker
 {
-   public MetricsTracker()
-   {
-   }
-
-   public void recordConnectionAcquiredNanos(final long elapsedAcquiredNanos)
-   {
-   }
-
-   public void recordConnectionUsageMillis(final long elapsedBorrowedMillis)
-   {
-   }
-
-   public void recordConnectionTimeout()
-   {
-   }
-
-   @Override
-   public void close()
-   {
-   }
 }

@@ -16,9 +16,9 @@
 
 package com.zaxxer.hikari.mocks;
 
-import static org.mockito.Matchers.anyInt;
-import static org.mockito.Matchers.anyObject;
-import static org.mockito.Matchers.anyString;
+import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -113,8 +113,8 @@ public class MockDataSource implements DataSource
         PreparedStatement mockPreparedStatement = mock(PreparedStatement.class);
         when(mockConnection.prepareStatement(anyString())).thenReturn(mockPreparedStatement);
         when(mockConnection.prepareStatement(anyString(), anyInt())).thenReturn(mockPreparedStatement);
-        when(mockConnection.prepareStatement(anyString(), (int[]) anyObject())).thenReturn(mockPreparedStatement);
-        when(mockConnection.prepareStatement(anyString(), (String[]) anyObject())).thenReturn(mockPreparedStatement);
+        when(mockConnection.prepareStatement(anyString(), any(int[].class))).thenReturn(mockPreparedStatement);
+        when(mockConnection.prepareStatement(anyString(), any(String[].class))).thenReturn(mockPreparedStatement);
         when(mockConnection.prepareStatement(anyString(), anyInt(), anyInt())).thenReturn(mockPreparedStatement);
         when(mockConnection.prepareStatement(anyString(), anyInt(), anyInt(), anyInt())).thenReturn(mockPreparedStatement);
         doAnswer(new Answer<Void>() {
@@ -148,7 +148,7 @@ public class MockDataSource implements DataSource
 //            public Void answer(InvocationOnMock invocation) throws Throwable {
 //                return null;
 //            }
-//        }).doThrow(new SQLException("Transaction already commited")).when(mockConnection).commit();
+//        }).doThrow(new SQLException("Transaction already committed")).when(mockConnection).commit();
 
         // Handle Connection.rollback()
 //        doAnswer(new Answer<Void>() {

@@ -20,7 +20,7 @@ import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
-import java.sql.Wrapper;
+import java.util.concurrent.locks.ReentrantLock;
 
 /**
  * This is the proxy class for java.sql.Statement.
@@ -30,12 +30,13 @@ import java.sql.Wrapper;
 public abstract class ProxyStatement implements Statement
 {
    protected final ProxyConnection connection;
-   protected final Statement delegate;
+   final Statement delegate;
 
    private boolean isClosed;
    private ResultSet proxyResultSet;
+   protected final ReentrantLock proxyStatementLock = new ReentrantLock();
 
-   protected ProxyStatement(ProxyConnection connection, Statement statement)
+   ProxyStatement(ProxyConnection connection, Statement statement)
    {
       this.connection = connection;
       this.delegate = statement;
@@ -50,11 +51,8 @@ public abstract class ProxyStatement implements Statement
    @Override
    public final String toString()
    {
-      final String delegateToString = delegate.toString();
-      return new StringBuilder(64 + delegateToString.length())
-         .append(this.getClass().getSimpleName()).append('@').append(System.identityHashCode(this))
-         .append(" wrapping ")
-         .append(delegateToString).toString();
+      final var delegateToString = delegate.toString();
+      return this.getClass().getSimpleName() + '@' + System.identityHashCode(this) + " wrapping " + delegateToString;
    }
 
    // **********************************************************************
@@ -65,11 +63,17 @@ public abstract class ProxyStatement implements Statement
    @Override
    public final void close() throws SQLException
    {
-      if (isClosed) {
-         return;
+      proxyStatementLock.lock();
+      try {
+         if (isClosed) {
+            return;
+         }
+
+         isClosed = true;
+      } finally {
+         proxyStatementLock.unlock();
       }
 
-      isClosed = true;
       connection.untrackStatement(delegate);
 
       try {
@@ -211,7 +215,7 @@ public abstract class ProxyStatement implements Statement
    /** {@inheritDoc} */
    @Override
    public ResultSet getResultSet() throws SQLException {
-      final ResultSet resultSet = delegate.getResultSet();
+      final var resultSet = delegate.getResultSet();
       if (resultSet != null) {
          if (proxyResultSet == null || ((ProxyResultSet) proxyResultSet).delegate != resultSet) {
             proxyResultSet = ProxyFactory.getProxyResultSet(connection, this, resultSet);
@@ -225,14 +229,25 @@ public abstract class ProxyStatement implements Statement
 
    /** {@inheritDoc} */
    @Override
+   public ResultSet getGeneratedKeys() throws SQLException
+   {
+      var resultSet = delegate.getGeneratedKeys();
+      if (proxyResultSet == null || ((ProxyResultSet) proxyResultSet).delegate != resultSet) {
+         proxyResultSet = ProxyFactory.getProxyResultSet(connection, this, resultSet);
+      }
+      return proxyResultSet;
+   }
+
+   /** {@inheritDoc} */
+   @Override
    @SuppressWarnings("unchecked")
    public final <T> T unwrap(Class<T> iface) throws SQLException
    {
       if (iface.isInstance(delegate)) {
          return (T) delegate;
       }
-      else if (delegate instanceof Wrapper) {
-          return delegate.unwrap(iface);
+      else if (delegate != null) {
+         return delegate.unwrap(iface);
       }
 
       throw new SQLException("Wrapped statement is not an instance of " + iface);

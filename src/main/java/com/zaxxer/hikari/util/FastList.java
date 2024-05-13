@@ -16,14 +16,15 @@
 
 package com.zaxxer.hikari.util;
 
+import java.io.Serializable;
 import java.lang.reflect.Array;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Comparator;
 import java.util.Iterator;
 import java.util.List;
 import java.util.ListIterator;
 import java.util.NoSuchElementException;
+import java.util.RandomAccess;
 import java.util.Spliterator;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
@@ -34,7 +35,8 @@ import java.util.function.UnaryOperator;
  *
  * @author Brett Wooldridge
  */
-public final class FastList<T> extends ArrayList<T>
+@SuppressWarnings("NullableProblems")
+public final class FastList<T> implements List<T>, RandomAccess, Serializable
 {
    private static final long serialVersionUID = -4598088075242913858L;
 
@@ -73,17 +75,17 @@ public final class FastList<T> extends ArrayList<T>
    @Override
    public boolean add(T element)
    {
-      try {
+      if (size < elementData.length) {
          elementData[size++] = element;
       }
-      catch (ArrayIndexOutOfBoundsException e) {
+      else {
          // overflow-conscious code
-         final int oldCapacity = elementData.length;
-         final int newCapacity = oldCapacity << 1;
+         final var oldCapacity = elementData.length;
+         final var newCapacity = oldCapacity << 1;
          @SuppressWarnings("unchecked")
-         final T[] newElementData = (T[]) Array.newInstance(clazz, newCapacity);
+         final var newElementData = (T[]) Array.newInstance(clazz, newCapacity);
          System.arraycopy(elementData, 0, newElementData, 0, oldCapacity);
-         newElementData[size - 1] = element;
+         newElementData[size++] = element;
          elementData = newElementData;
       }
 
@@ -126,9 +128,9 @@ public final class FastList<T> extends ArrayList<T>
    @Override
    public boolean remove(Object element)
    {
-      for (int index = size - 1; index >= 0; index--) {
+      for (var index = size - 1; index >= 0; index--) {
          if (element == elementData[index]) {
-            final int numMoved = size - index - 1;
+            final var numMoved = size - index - 1;
             if (numMoved > 0) {
                System.arraycopy(elementData, index + 1, elementData, index, numMoved);
             }
@@ -146,7 +148,7 @@ public final class FastList<T> extends ArrayList<T>
    @Override
    public void clear()
    {
-      for (int i = 0; i < size; i++) {
+      for (var i = 0; i < size; i++) {
          elementData[i] = null;
       }
 
@@ -184,9 +186,13 @@ public final class FastList<T> extends ArrayList<T>
    @Override
    public T remove(int index)
    {
+      if (size == 0) {
+         return null;
+      }
+
       final T old = elementData[index];
 
-      final int numMoved = size - index - 1;
+      final var numMoved = size - index - 1;
       if (numMoved > 0) {
          System.arraycopy(elementData, index + 1, elementData, index, numMoved);
       }
@@ -207,7 +213,7 @@ public final class FastList<T> extends ArrayList<T>
    @Override
    public Iterator<T> iterator()
    {
-      return new Iterator<T>() {
+      return new Iterator<>() {
          private int index;
 
          @Override
@@ -223,7 +229,7 @@ public final class FastList<T> extends ArrayList<T>
                return elementData[index++];
             }
 
-            throw new NoSuchElementException("No more elements in FastList"); 
+            throw new NoSuchElementException("No more elements in FastList");
          }
       };
    }
@@ -321,20 +327,6 @@ public final class FastList<T> extends ArrayList<T>
 
    /** {@inheritDoc} */
    @Override
-   public void trimToSize()
-   {
-      throw new UnsupportedOperationException();
-   }
-
-   /** {@inheritDoc} */
-   @Override
-   public void ensureCapacity(int minCapacity)
-   {
-      throw new UnsupportedOperationException();
-   }
-
-   /** {@inheritDoc} */
-   @Override
    public Object clone()
    {
       throw new UnsupportedOperationException();
@@ -342,36 +334,34 @@ public final class FastList<T> extends ArrayList<T>
 
    /** {@inheritDoc} */
    @Override
-   protected void removeRange(int fromIndex, int toIndex)
-   {
-      throw new UnsupportedOperationException();
-   }
-
-   /** {@inheritDoc} */
    public void forEach(Consumer<? super T> action)
    {
       throw new UnsupportedOperationException();
    }
 
    /** {@inheritDoc} */
+   @Override
    public Spliterator<T> spliterator()
    {
       throw new UnsupportedOperationException();
    }
 
    /** {@inheritDoc} */
+   @Override
    public boolean removeIf(Predicate<? super T> filter)
    {
       throw new UnsupportedOperationException();
    }
 
    /** {@inheritDoc} */
+   @Override
    public void replaceAll(UnaryOperator<T> operator)
    {
       throw new UnsupportedOperationException();
    }
 
    /** {@inheritDoc} */
+   @Override
    public void sort(Comparator<? super T> c)
    {
       throw new UnsupportedOperationException();

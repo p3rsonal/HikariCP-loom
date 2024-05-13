@@ -43,9 +43,10 @@ import java.util.Calendar;
  *
  * @author Brett Wooldridge
  */
+@SuppressWarnings("RedundantThrows")
 public class StubPreparedStatement extends StubStatement implements PreparedStatement
 {
-    public StubPreparedStatement(Connection connection)
+    StubPreparedStatement(Connection connection)
     {
         super(connection);
     }
@@ -68,7 +69,7 @@ public class StubPreparedStatement extends StubStatement implements PreparedStat
     @Override
     public int getMaxFieldSize() throws SQLException
     {
-        throw new SQLException("No reason", "08999");
+        throw new SQLException("Simulated disconnection error", "08999");
     }
 
     /** {@inheritDoc} */
@@ -439,6 +440,7 @@ public class StubPreparedStatement extends StubStatement implements PreparedStat
 
     /** {@inheritDoc} */
     @Override
+    @SuppressWarnings("deprecation")
     public void setUnicodeStream(int parameterIndex, InputStream x, int length) throws SQLException
     {
     }

@@ -32,63 +32,64 @@ import org.slf4j.LoggerFactory;
 class ProxyLeakTask implements Runnable
 {
    private static final Logger LOGGER = LoggerFactory.getLogger(ProxyLeakTask.class);
-   private static final ProxyLeakTask NO_LEAK;
+   static final ProxyLeakTask NO_LEAK;
 
-   private ScheduledExecutorService executorService;
-   private long leakDetectionThreshold;
    private ScheduledFuture<?> scheduledFuture;
    private String connectionName;
    private Exception exception;
+   private String threadName;
+   private boolean isLeaked;
 
    static
    {
       NO_LEAK = new ProxyLeakTask() {
          @Override
+         void schedule(ScheduledExecutorService executorService, long leakDetectionThreshold) {}
+
+         @Override
+         public void run() {}
+
+         @Override
          public void cancel() {}
       };
    }
 
-   ProxyLeakTask(final long leakDetectionThreshold, final ScheduledExecutorService executorService)
-   {
-      this.executorService = executorService;
-      this.leakDetectionThreshold = leakDetectionThreshold;
-   }
-
-   private ProxyLeakTask(final ProxyLeakTask parent, final PoolEntry poolEntry)
+   ProxyLeakTask(final PoolEntry poolEntry)
    {
       this.exception = new Exception("Apparent connection leak detected");
+      this.threadName = Thread.currentThread().getName();
       this.connectionName = poolEntry.connection.toString();
-      scheduledFuture = parent.executorService.schedule(this, parent.leakDetectionThreshold, TimeUnit.MILLISECONDS);
    }
 
    private ProxyLeakTask()
    {
    }
-   
-   ProxyLeakTask schedule(final PoolEntry bagEntry)
-   {
-      return (leakDetectionThreshold == 0) ? NO_LEAK : new ProxyLeakTask(this, bagEntry);
-   }
 
-   void updateLeakDetectionThreshold(final long leakDetectionThreshold)
+   void schedule(ScheduledExecutorService executorService, long leakDetectionThreshold)
    {
-      this.leakDetectionThreshold = leakDetectionThreshold;
+      scheduledFuture = executorService.schedule(this, leakDetectionThreshold, TimeUnit.MILLISECONDS);
    }
 
    /** {@inheritDoc} */
    @Override
    public void run()
    {
-      final StackTraceElement[] stackTrace = exception.getStackTrace(); 
-      final StackTraceElement[] trace = new StackTraceElement[stackTrace.length - 5];
+      isLeaked = true;
+
+      final var stackTrace = exception.getStackTrace();
+      final var trace = new StackTraceElement[stackTrace.length - 5];
+
       System.arraycopy(stackTrace, 5, trace, 0, trace.length);
 
       exception.setStackTrace(trace);
-      LOGGER.warn("Connection leak detection triggered for {}, stack trace follows", connectionName, exception);
+      LOGGER.warn("Connection leak detection triggered for {} on thread {}, stack trace follows", connectionName, threadName, exception);
    }
 
    void cancel()
    {
       scheduledFuture.cancel(false);
+      if (isLeaked) {
+         LOGGER.info("Previously reported leaked connection {} on thread {} was returned to the pool (unleaked)", connectionName, threadName);
+      }
    }
 }

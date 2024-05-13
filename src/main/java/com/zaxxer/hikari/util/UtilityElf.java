@@ -16,15 +16,11 @@
 
 package com.zaxxer.hikari.util;
 
-import static java.util.concurrent.TimeUnit.SECONDS;
+import java.util.Locale;
+import java.util.concurrent.*;
 
-import java.lang.reflect.Constructor;
-import java.lang.reflect.Field;
-import java.sql.Connection;
-import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.RejectedExecutionHandler;
-import java.util.concurrent.ThreadFactory;
-import java.util.concurrent.ThreadPoolExecutor;
+import static java.lang.Thread.currentThread;
+import static java.util.concurrent.TimeUnit.SECONDS;
 
 /**
  *
@@ -32,6 +28,11 @@ import java.util.concurrent.ThreadPoolExecutor;
  */
 public final class UtilityElf
 {
+   private UtilityElf()
+   {
+      // non-constructable
+   }
+
    /**
     *
     * @return null if string is null or empty
@@ -42,7 +43,7 @@ public final class UtilityElf
    }
 
    /**
-    * Sleep and transform an InterruptedException into a RuntimeException.
+    * Sleep and suppress InterruptedException (but re-signal it).
     *
     * @param millis the number of milliseconds to sleep
     */
@@ -53,6 +54,22 @@ public final class UtilityElf
       }
       catch (InterruptedException e) {
          // I said be quiet!
+         currentThread().interrupt();
+      }
+   }
+
+   /**
+    * Checks whether an object is an instance of given type without throwing exception when the class is not loaded.
+    * @param obj the object to check
+    * @param className String class
+    * @return true if object is assignable from the type, false otherwise or when the class cannot be loaded
+    */
+   public static boolean safeIsAssignableFrom(Object obj, String className) {
+      try {
+         var clazz = Class.forName(className);
+         return clazz.isAssignableFrom(obj.getClass());
+      } catch (ClassNotFoundException ignored) {
+         return false;
       }
    }
 
@@ -73,16 +90,16 @@ public final class UtilityElf
       }
 
       try {
-         Class<?> loaded = UtilityElf.class.getClassLoader().loadClass(className);
+         var loaded = UtilityElf.class.getClassLoader().loadClass(className);
          if (args.length == 0) {
-            return clazz.cast(loaded.newInstance());
+            return clazz.cast(loaded.getDeclaredConstructor().newInstance());
          }
 
-         Class<?>[] argClasses = new Class<?>[args.length];
+         var argClasses = new Class<?>[args.length];
          for (int i = 0; i < args.length; i++) {
             argClasses[i] = args[i].getClass();
          }
-         Constructor<?> constructor = loaded.getConstructor(argClasses);
+         var constructor = loaded.getConstructor(argClasses);
          return clazz.cast(constructor.newInstance(args));
       }
       catch (Exception e) {
@@ -101,12 +118,25 @@ public final class UtilityElf
     */
    public static ThreadPoolExecutor createThreadPoolExecutor(final int queueSize, final String threadName, ThreadFactory threadFactory, final RejectedExecutionHandler policy)
    {
+      return createThreadPoolExecutor(new LinkedBlockingQueue<>(queueSize), threadName, threadFactory, policy);
+   }
+
+   /**
+    * Create a ThreadPoolExecutor.
+    *
+    * @param queue the BlockingQueue to use
+    * @param threadName the thread name
+    * @param threadFactory an optional ThreadFactory
+    * @param policy the RejectedExecutionHandler policy
+    * @return a ThreadPoolExecutor
+    */
+   public static ThreadPoolExecutor createThreadPoolExecutor(final BlockingQueue<Runnable> queue, final String threadName, ThreadFactory threadFactory, final RejectedExecutionHandler policy)
+   {
       if (threadFactory == null) {
-         threadFactory = new DefaultThreadFactory(threadName, true);
+         threadFactory = new DefaultThreadFactory(threadName);
       }
 
-      LinkedBlockingQueue<Runnable> queue = new LinkedBlockingQueue<>(queueSize);
-      ThreadPoolExecutor executor = new ThreadPoolExecutor(1, 1, 5, SECONDS, queue, threadFactory, policy);
+      var executor = new ThreadPoolExecutor(1 /*core*/, 1 /*max*/, 5 /*keepalive*/, SECONDS, queue, threadFactory, policy);
       executor.allowCoreThreadTimeOut(true);
       return executor;
    }
@@ -125,44 +155,51 @@ public final class UtilityElf
    {
       if (transactionIsolationName != null) {
          try {
-            final String upperName = transactionIsolationName.toUpperCase();
-            if (upperName.startsWith("TRANSACTION_")) {
-               Field field = Connection.class.getField(upperName);
-               return field.getInt(null);
+            // use the english locale to avoid the infamous turkish locale bug
+            final var upperCaseIsolationLevelName = transactionIsolationName.toUpperCase(Locale.ENGLISH);
+            return IsolationLevel.valueOf(upperCaseIsolationLevelName).getLevelId();
+         } catch (IllegalArgumentException e) {
+            // legacy support for passing an integer version of the isolation level
+            try {
+               final var level = Integer.parseInt(transactionIsolationName);
+               for (var iso : IsolationLevel.values()) {
+                  if (iso.getLevelId() == level) {
+                     return iso.getLevelId();
+                  }
+               }
+
+               throw new IllegalArgumentException("Invalid transaction isolation value: " + transactionIsolationName);
             }
-            final int level = Integer.parseInt(transactionIsolationName);
-            switch (level) {
-               case Connection.TRANSACTION_READ_UNCOMMITTED:
-               case Connection.TRANSACTION_READ_COMMITTED:
-               case Connection.TRANSACTION_REPEATABLE_READ:
-               case Connection.TRANSACTION_SERIALIZABLE:
-               case Connection.TRANSACTION_NONE:
-                  return level;
-               default:
-                  throw new IllegalArgumentException();
-             }
-         }
-         catch (Exception e) {
-            throw new IllegalArgumentException("Invalid transaction isolation value: " + transactionIsolationName);
+            catch (NumberFormatException nfe) {
+               throw new IllegalArgumentException("Invalid transaction isolation value: " + transactionIsolationName, nfe);
+            }
          }
       }
 
       return -1;
    }
 
-   public static final class DefaultThreadFactory implements ThreadFactory {
+   public static class CustomDiscardPolicy implements RejectedExecutionHandler
+   {
+      @Override
+      public void rejectedExecution(Runnable r, ThreadPoolExecutor executor) {
+      }
+   }
 
+   public static final class DefaultThreadFactory implements ThreadFactory
+   {
       private final String threadName;
       private final boolean daemon;
 
-      public DefaultThreadFactory(String threadName, boolean daemon) {
+      public DefaultThreadFactory(String threadName) {
          this.threadName = threadName;
-         this.daemon = daemon;
+         this.daemon = true;
       }
 
       @Override
+      @SuppressWarnings("NullableProblems")
       public Thread newThread(Runnable r) {
-         Thread thread = new Thread(r, threadName);
+         var thread = new Thread(r, threadName);
          thread.setDaemon(daemon);
          return thread;
       }
